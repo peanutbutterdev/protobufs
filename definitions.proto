@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option go_package = "github.com/peanutbutterdev/protobufs";
+
+//import "internal/server/object/object.proto";
+import "internal/server/world/world.proto";
+import "internal/server/pops/pops.proto";
+import "validate/validate.proto";
+
+message Generator {
+  string name = 1;
+  string description = 2;
+  // Units that are added to possible units to create
+  repeated Unit units = 3;
+  // these are the actions that can be given to certain units.. based on what tag they have
+  repeated Action actions = 4;
+  // these add the independent units that will spawn in the biome now
+  repeated Pop independents = 5;
+  // Skills are passive abilities that unit will have
+  repeated Skill skills = 6;
+  // Terrain that is added based on what is chosen
+  repeated Terrain terrain = 7;
+  // the units that the pop will start with
+  repeated StartingUnit startingUnits = 8;
+}
+
+message AllGenerators {
+  repeated GeneratorGroup generatorGroups = 1;
+}
+
+message GeneratorGroup {
+  string name = 1;
+  repeated Generator generators = 2;
+}
+
+
+message Empty {}
+
+service GeneratorService {
+  rpc GetAllGenerators(Empty) returns (AllGenerators);
+}
+
+
+
+

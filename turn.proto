@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/peanutbutterdev/protobufs";
+
+import "internal/server/pops/pops.proto";
+
+message TurnDone {
+  int64 turnNumber = 1;
+  repeated Unit independents = 2;
+}
+
+service TurnService {
+  rpc SendTurn(Pop) returns (TurnDone);
+  rpc StartNewGame(Game) returns (Pop);
+}

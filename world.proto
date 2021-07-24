@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option go_package = "github.com/peanutbutterdev/protobufs";
+
+message World {
+  string name = 1;
+  int64 x = 2;
+  int64 y = 3;
+  repeated Terrain terrain = 4;
+}
+
+// Terrain represents 1 square of the world
+message Terrain {
+  string name = 1;
+  string tile = 2;
+  uint32 color = 3;
+  repeated string unitUUIDs = 4; // units located in world
+  repeated string objectUUIDs = 5; // objects located in world
+  int64 limit = 6; // When generating world.. max number of these allowed
+  repeated string tags = 7;
+  bool visible = 9; // true if the player can see it
+  // For creation of the map.. this is the weight of the terrain to exist
+  int64 generatorWeight = 10;
+  // This guarantees a certain number of this type of terrain
+  int64 mustHave = 11;
+}
+
+

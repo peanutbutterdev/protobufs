@@ -1,0 +1,338 @@
+syntax = "proto3";
+
+option go_package = "github.com/peanutbutterdev/protobufs";
+
+import "internal/server/object/object.proto";
+import "internal/server/world/world.proto";
+
+import "validate/validate.proto";
+
+message Game {
+  string name = 1;
+  //string UUID = 2;
+  repeated Pop players = 3;
+}
+
+// A pop represents 2 different things
+// A pop definition.. that can be chosen to be played in the game
+// A player/AI in the current game
+// When player/AI is created to be in the game. It's base state is from the definition.  Similar to prototype pattern
+message Pop {
+  string name = 1;
+  string description = 2;
+  string vanityName = 3; // Just a vanity name players or auto generation can give to make things more interesting
+  repeated Pop independents = 4;
+  repeated Unit units = 5;
+  bool turnDone = 6; // if turn was submitted either AI or player
+  string playerUUID = 7; // This is the unique key
+  Pop popDefinition = 8; // This is to link back to the pop definition
+  repeated StartingUnit startingUnits = 9;
+  repeated Terrain terrain = 16; // terrain that pop is generated with
+  repeated World worlds = 17; // This is the player version of the maps they can see
+  repeated Unit visibleUnits = 18; // all the units a player can currently see not in their pop
+  repeated string events = 19;
+  string kind = 20; // TODO make validation for this
+  AI AI = 21;
+  // How much larger a pops world is
+  float mapSizeMultipler = 22;
+  int64 startingPointX = 23;
+  int64 startingPointY = 24;
+  Color color = 25;
+  // When they are independents... this is the weight of spawning this pop
+  int64 generatorWeight = 26;
+}
+
+message Color {
+  uint32 r = 1;
+  uint32 g = 2;
+  uint32 b = 3;
+}
+
+// What kind of AI it is
+message AI {
+  string kind = 1 [(validate.rules).string = {pattern: "(random)"}];
+}
+
+
+message StartingUnit {
+  string name = 1; // matches a unit name
+  repeated Object objects = 2;
+  string world = 3 [(validate.rules).string = {pattern: "[a-zA-Z]+"}];
+}
+
+message QueuedAction {
+  Action plannedAction = 1;
+  Target plannedTarget = 2;
+}
+
+message Unit {
+  string name = 1 [(validate.rules).string = {pattern: "[a-zA-Z]+"}];
+  string UUID = 2;
+  int64 limit = 3; // max number of these units allowed
+  string description = 4;
+  int64 count = 5; // Not sure if this matters yet.. are there more than 1 unit per square?
+  repeated Action actions = 6; // all the actions a unit can take
+  // TODO uncomment validation when ready for big time
+  // Stats stats = 7 [(validate.rules).message.required = true];
+  Stats stats = 7;
+  // positions on the map
+  int64 x = 8;
+  int64 y = 9;
+  float z = 10; // not normally set directly on the unit.. but it could if there is something unique about it to be different
+  string imagePath = 11; // path on the client where the asset lies
+  int64 spriteIndex = 12; // index on sprite to use.. left to right
+  Action plannedAction = 13; // The action the player chooses for the unit to do
+  Target plannedTarget = 14; // The target the player chooses for the action
+  repeated Object objects = 15; // What objects unit is carrying
+  string defaultAction = 16;
+  bool prime = 17; // A player must have at least 1 prime unit.. or they lose
+  repeated Object loot = 18; // extra drops not part of objects .. like skulls.. or dragon tails
+  bool inCombat = 19; // true if unit is considered in combat
+  bool summonSicked = 20; // a unit will get created can't do anything this turn.. more for AI
+  int64 vision = 21; // How many squares a unit can see
+  string world = 22; // The world the unit is in
+  repeated string events = 23;
+  // These are actions that are gifted to units on the same square as this one
+  // Primarily used for interacting with things on the map such as caves/villages
+  repeated Action sharedActions = 24;
+  repeated Action extraActions = 25; // list of actions that the unit can temporary do this turn.. mostly from shared actions
+  // A structure adds some constraints to the system
+  /*
+  1. you can't place a structure over another one
+  2. it'll be placed below objects on sprites
+  3. besides that they are treated like any other unit
+   */
+  bool structure = 26;
+  repeated QueuedAction actionQueue = 27;
+  AI AI = 28;
+  bool dead = 29;
+  repeated string generatorTags = 30;
+  repeated Skill skills = 31;
+  // TODO implement this.. but when this unit dies... the pop that killed it now owns it
+  bool transferOwnerOnDeath = 32;
+}
+
+
+message PopRequest {
+  string playerUUID = 1;
+}
+
+message AllPops {
+  repeated Pop pops = 1;
+}
+
+message OtherUnits {
+  repeated Unit units = 1;
+}
+
+message AllPopRequest {}
+
+
+service PopService {
+  rpc GetPlayerPop(PopRequest) returns (Pop);
+  rpc GetAllPops(AllPopRequest) returns (AllPops);
+}
+
+
+message Action {
+  string name = 1 [(validate.rules).string = {pattern: "[a-zA-Z]+"}];
+  string description = 2;
+  string costText = 3; // readable text to show cost. generated by the server
+  Cost cost = 4;
+  string targetType = 5 [(validate.rules).string = {pattern: "(^$|biome|unit)",}];
+  repeated string targetTags = 6; // The target must have either all/one of these tags
+  bool allTags = 7; // if true the target must have all the tags not just 1
+  repeated Target potentialTargets = 8; // List of all potential targets
+  int64 area = 9; // For area affects how long large it is
+  int64 range = 10; // range of the action
+  bool repeatable = 11; // if set to true the action will repeat on next turn
+  // all the different affects an action can do
+  Object createObjectAction = 12;
+  MovementAction movementAction = 13;
+  UnitStatAction unitStatAction = 14;
+  TerrainAction terrainAction = 15;
+  repeated DamageAction damageActions = 16;
+  string createUnitAction = 17;
+  // other stuff
+  Attack attack = 18; // if this is set it is an attack
+  bool selfTarget = 19; // true means it can target the square it is present on
+  AddAction addAction = 20;
+  TransferObjectAction depositAction = 21;
+  TransferObjectAction WithdrawAction = 22;
+  repeated string generatorTags = 30;
+}
+
+// deposit/withdraw all items with this tag to target unit
+message TransferObjectAction {
+  string tag = 1;  //
+}
+
+
+
+message Attack {
+  int64 attack = 1;
+  repeated string tags = 2;
+  bool ranged = 3; // A ranged attack takes negatives in melee
+  bool magical = 4; //
+}
+
+message Target {
+  int64 X = 2;
+  int64 Y = 3;
+  string unitUUID = 4; // Only used when set to TARGET_UNIT
+  string tileText = 5; // text to put on the tile when showing the target
+  string hoverText = 6; // text to show when you hover over the target
+}
+
+message DamageAction {
+  string tag = 1;
+  string damage = 2 [(validate.rules).string = {pattern: "[0-9]+d[0-9]+"}];
+
+}
+
+message MovementAction {
+  int64 amount = 1; // How many movement points
+  bool terrainImmune = 2; // if true terrain means nothing
+  bool unitImmune = 3; // if true units don't block movement
+}
+
+// Adds a new action to the unit
+message AddAction {
+  Action action = 1;
+  bool toDefinition = 2; // Will the pop definition get this?
+}
+
+message UnitStatAction {
+  int64 duration = 1; // how many turns. -1 forever 0 just this action phase
+  Stats stat = 2;
+  repeated string addTags = 10; // unit will act as if it has these tags
+  repeated string removeTags = 11; // unit will act if they dont have these tags
+  // if target has effect with these tags.. effect is removed
+  repeated string removeActionTags = 12;
+}
+
+message TerrainAction {
+  repeated string addTags = 1; // to add tags
+  repeated string removeTags = 2; // to remove tags
+  repeated string newTags = 3; // to replace tags entirely
+  string newImage = 4; // path to sprite to replace terrain with
+}
+
+
+message AttackStat {
+  int64 attack = 1;
+  int64 defense = 2;
+  int64 damage = 3;
+  int64 protection = 4;
+}
+
+enum RESISTANT {
+  NO = 0; // represents tag just not present
+  WEAK = 1;
+  STRONG = 2;
+  IMMUNE = 3;
+  FATAL = 4;
+}
+
+message Stats {
+  int64 maxHp = 1;
+  int64 hp = 2;
+  AttackStat melee = 3;
+  AttackStat magic = 4;
+  AttackStat ranged = 5;
+  int64 speed = 6;
+  repeated ExtraStat extraStats = 7;
+  repeated string weakTags = 8;
+  repeated string strongTags = 9;
+  repeated string immuneTags = 10;
+  repeated string fatalTags = 11;
+  repeated string tags = 12; // general tags a unit might have.. used for potential targets ATM
+}
+
+// Extra stats will be specific to a pop
+// they are used to give some flavor
+// but because of the freedom they can't really be used for combat type stats
+message ExtraStat {
+  string name = 1;
+  int32 value = 2;
+}
+
+message Cost {
+  repeated ObjectCost objectCosts = 3;
+  // Not implemented yet
+  repeated StatCost statCost = 4; // Used to
+  UnitCost unitCost = 5;
+  TimeCost timeCost = 6;
+  LimitCost limitCost = 7;
+  string actionRequirementCost = 8; // must have this action
+}
+
+
+// there is an overall limit on how many times this action can be used
+message LimitCost {
+  int64 limit = 1;
+  int64 uses = 2;
+  bool delete = 3;  // if true the action will be deleted after uses reaches limit
+}
+
+message ObjectCost {
+  int64 amount = 1;
+  string tag = 2;
+}
+
+// A statcost is going to be a reduction in a stat
+message StatCost {
+  Stats stats = 1;
+  int64 duration = 2;
+}
+
+// A unit is going to be deleted/destroyed to pay the cost
+message UnitCost {
+  bool Targeted = 1; // If true it is another unit being used
+}
+
+// It takes a certain number of turns to use this action
+message TimeCost {
+  int64 turns = 1; // this is additonal turns.. so 1 means 1 extra turn. 2 total
+  int64 turnsPassed = 2;
+  bool saveOnInterruption = 3; // When set to true.. using another skill won't reset the turns
+}
+
+message Skill {
+  string name = 1;
+  // It increases a stat
+  Stats Stat = 2;
+  repeated string generatorTags = 3;
+}
+
+message Quest {
+  string name = 1;
+  string unitUUID = 2; // the unit that gave the quest
+  repeated QuestKill kills = 3;
+  repeated QuestGather gathers = 4;
+  repeated QuestAction actions = 5;
+  repeated Object rewards = 6;
+}
+
+message QuestKill {
+  string unit = 1; // the name of unit that much match
+  int64 number = 2; // Number required to kill
+  int64 count = 3; // The current number
+}
+
+message QuestGather {
+  string tag = 1; // The object tag requried
+  int64 number = 2; // Number required to kill
+  int64 count = 3; // The current number
+}
+
+message QuestAction {
+  string action = 1; // the name of the action to do
+  // where the action must be done if location is true
+  int64 x = 2;
+  int64 y = 3;
+}
+
+
+
+
