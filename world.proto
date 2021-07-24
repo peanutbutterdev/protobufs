@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/peanutbutterdev/protobufs";
+option go_package = "github.com/peanutbutterdev/proto";
 
 message World {
   string name = 1;

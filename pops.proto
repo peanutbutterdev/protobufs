@@ -1,9 +1,9 @@
 syntax = "proto3";
 
-option go_package = "github.com/peanutbutterdev/protobufs";
+option go_package = "github.com/peanutbutterdev/proto";
 
-import "internal/server/object/object.proto";
-import "internal/server/world/world.proto";
+import "object.proto";
+import "world.proto";
 
 import "validate/validate.proto";
 
