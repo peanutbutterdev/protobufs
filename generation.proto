@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package = "github.com/peanutbutterdev/game/internal/server/worldGeneration";
+
+import "world.proto";
+import "pops.proto";
+
+import "validate/validate.proto";
+
+message GenerateWorld {
+  string name = 1 [(validate.rules).string = {pattern: ".+"}];
+  repeated Pop pops = 2;
+  repeated Terrain backgroundTerrain = 3;
+  // Not used yet.. but determines the shape of the map
+  //string shape = 4 [(validate.rules).string = {pattern: "(long|tall)"}];
+  int64 startingX = 5;
+  int64 startingY = 6;
+}
+
+message GenerateWorldResponse {}
+
+
+service GenerateWorldService {
+  rpc GenerateTheWorld(GenerateWorld) returns (GenerateWorldResponse);
+}
+
+

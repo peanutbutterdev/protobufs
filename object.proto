@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-option go_package = "github.com/peanutbutterdev/protobufs";
-
 message Object {
   string name = 1;
   string description = 2;
