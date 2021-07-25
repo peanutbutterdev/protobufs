@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-option go_package = "github.com/peanutbutterdev/game/internal/server/worldGeneration";
 
 import "world.proto";
 import "pops.proto";
